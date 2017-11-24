@@ -9,6 +9,9 @@ from mysql_client import *
 import sys, traceback
 
 db = Database()
+chromeOptions = webdriver.ChromeOptions()
+prefs = {"profile.managed_default_content_settings.images":2}
+chromeOptions.add_experimental_option("prefs",prefs)
 
 year = int(input("Enter Year : "))
 page_count = input("Page Count (Optional) : ")
@@ -31,10 +34,13 @@ while True:
     K = [] # Stars
     L = [] # Votes
 
+    browser = webdriver.Chrome(chrome_options=chromeOptions)
+
     wiki = f"http://www.imdb.com/search/title?release_date={str(year)}&page={str(page_count + 1)}"
     print("💻  Url : ", wiki)
-    page = urllib.request.urlopen(wiki)
-    soup = BeautifulSoup(page, "html5lib")
+    browser.get(wiki)
+    soup = BeautifulSoup(browser.page_source, "html5lib")
+    browser.close()
     table = soup.find('div', class_='lister-list')
 
     divs = table.findAll("div", class_ = 'lister-item mode-advanced')
@@ -42,7 +48,7 @@ while True:
         break
 
     for row in divs:
-        div = row.findAll("div")[3]
+        div = row.findAll("div")[4]
         A.append(re.sub("[^0-9]", "", div.h3.find("span", class_ = "lister-item-index").text))
         B.append(div.h3.find("a")["href"])
         C.append(div.h3.find("a").text.replace("\"", "\'"))
@@ -59,12 +65,12 @@ while True:
         I.append(div.findAll("p", class_ = "text-muted")[1].text.replace("\n", "").replace("\"", "\'")) if len(div.findAll("p", class_ = "text-muted")) > 0 else I.append("")
 
         if len(div.findAll("p", class_ = "")) > 0:
-            casts = re.sub(' +',' ',div.findAll("p", class_  = "")[1].text.replace("\n", ""))
+            casts = re.sub(' +',' ',div.findAll("p", class_  = "")[1].text.replace("\n", "")).lower().replace("\"", "\'")
             if not "|" in casts:
                 casts = "|" + casts
             casts = casts.split("|")
-            J.append([a.strip().lower().replace("\"", "\'") for a in casts[0].replace("Directors:", "").replace("Director:", "").split(",")])
-            K.append([a.strip().lower().replace("\"", "\'") for a in casts[1].replace("Stars:", "").replace("Star:", "").split(",")])
+            J.append([a.strip() for a in casts[0].replace("Directors:", "").replace("Director:", "").split(",")])
+            K.append([a.strip() for a in casts[1].replace("Stars:", "").replace("Star:", "").split(",")])
         else:
             J.append([])
             K.append([])
